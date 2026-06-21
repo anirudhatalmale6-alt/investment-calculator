@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investment Comparison Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#1a2332;--navy2:#243447;--gold:#c9a84c;--gold2:#e8c960;--gold-bg:rgba(201,168,76,0.08);--green:#27ae60;--red:#e74c3c;--blue:#3498db;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text2:#7f8c8d;--border:#e1e8ed;--input-bg:#fdf6e3;--radius:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+header h1{font-size:20px;font-weight:600;letter-spacing:0.5px}
+header h1 span{color:var(--gold)}
+.tabs{display:flex;gap:4px}
+.tab{padding:8px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:20px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.7);transition:all 0.3s;background:transparent;font-weight:500}
+.tab:hover{background:rgba(255,255,255,0.1);color:#fff}
+.tab.active{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:600}
+.model-section{display:none;padding:20px;max-width:1400px;margin:0 auto}
+.model-section.active{display:block}
+.model-header{text-align:center;margin-bottom:24px}
+.model-header h2{font-size:22px;color:var(--navy);margin-bottom:4px}
+.model-header p{color:var(--text2);font-size:14px}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow:hidden}
+.panel-title{background:var(--navy);color:#fff;padding:10px 16px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+.panel-body{padding:16px}
+.input-group{margin-bottom:12px}
+.input-group label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+.input-group input,.input-group select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:14px;background:var(--input-bg);color:var(--text);transition:border 0.2s}
+.input-group input:focus,.input-group select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,168,76,0.2)}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.section-divider{border:none;border-top:2px solid var(--gold);margin:16px 0;opacity:0.3}
+.section-label{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--navy);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--border)}
+tr:nth-child(even){background:rgba(0,0,0,0.02)}
+tr:hover{background:rgba(201,168,76,0.06)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--green);font-weight:600}
+.neg{color:var(--red);font-weight:600}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.s-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;border-top:3px solid var(--gold)}
+.s-card.green{border-top-color:var(--green)}
+.s-card.blue{border-top-color:var(--blue)}
+.s-card.red{border-top-color:var(--red)}
+.s-card .label{font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600;letter-spacing:0.5px}
+.s-card .value{font-size:20px;font-weight:700;color:var(--navy);margin-top:4px}
+.s-card .sub{font-size:11px;color:var(--text2);margin-top:2px}
+.chart-container{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:20px}
+.chart-container canvas{max-height:300px}
+.comparison-table{margin-top:20px}
+.comparison-table th:first-child{background:var(--navy2)}
+.comparison-table .winner{background:rgba(39,174,96,0.1);font-weight:700}
+.winner-badge{display:inline-block;background:var(--green);color:#fff;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-top:8px}
+.stock-returns-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.stock-returns-grid .yr-input{display:flex;align-items:center;gap:4px;font-size:12px}
+.stock-returns-grid .yr-input label{min-width:32px;font-size:11px;color:var(--text2)}
+.stock-returns-grid .yr-input input{width:60px;padding:4px 6px;font-size:12px;text-align:center}
+.withdrawal-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.withdrawal-grid .w-input{display:flex;align-items:center;gap:3px;font-size:11px}
+.withdrawal-grid .w-input label{min-width:20px;font-size:10px;color:var(--text2)}
+.withdrawal-grid .w-input input{width:45px;padding:3px 4px;font-size:11px;text-align:center}
+.btn{padding:10px 24px;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px}
+.btn-gold{background:var(--gold);color:var(--navy)}
+.btn-gold:hover{background:var(--gold2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,168,76,0.3)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#219a52}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#2980b9}
+.export-bar{text-align:center;margin:24px 0;display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.toggle-group{display:flex;gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.toggle-btn{padding:6px 14px;font-size:12px;cursor:pointer;background:#fff;border:none;border-right:1px solid var(--border);font-weight:500;transition:all 0.2s}
+.toggle-btn:last-child{border-right:none}
+.toggle-btn.active{background:var(--navy);color:#fff}
+.results-section{margin-bottom:20px}
+.results-section h3{font-size:16px;color:var(--navy);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--gold);display:inline-block}
+.amort-table{max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
+.amort-table table th{position:sticky;top:0;z-index:1}
+.tooltip-icon{display:inline-block;width:16px;height:16px;background:var(--blue);color:#fff;border-radius:50%;font-size:10px;text-align:center;line-height:16px;cursor:help;margin-left:4px}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(--border);border-radius:3px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--gold);border-radius:50%;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+.range-row{display:flex;align-items:center;gap:8px}
+.range-row input[type=range]{flex:1}
+.range-val{font-weight:700;color:var(--navy);min-width:50px;text-align:right;font-size:14px}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.scenario-tabs{display:flex;gap:4px;margin-bottom:16px}
+.scenario-tab{padding:8px 16px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;background:#fff}
+.scenario-tab.active{border-color:var(--gold);background:var(--gold-bg);color:var(--navy)}
+.highlight-row{background:rgba(201,168,76,0.12)!important;font-weight:700}
+.total-row{background:var(--navy)!important;color:#fff!important;font-weight:700}
+.total-row td{color:#fff!important;border-bottom:none}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>&#9670;</span> Investment Comparison <span>Calculator</span></h1>
+  <div class="tabs">
+    <div class="tab active" onclick="switchModel(1)">Model 1: Property vs Stock</div>
+    <div class="tab" onclick="switchModel(2)">Model 2: Staggered vs Upfront</div>
+    <div class="tab" onclick="switchModel(3)">Model 3: Builder View</div>
+  </div>
+</header>
+
+<!-- ==================== MODEL 1 ==================== -->
+<section id="model1" class="model-section active">
+  <div class="model-header">
+    <h2>Investment Comparison: Property vs Stock Market</h2>
+    <p>Compare off-plan property investment (Dubai) against stock market returns using identical initial cash</p>
+  </div>
+  <div class="grid">
+    <div>
+      <!-- INPUTS -->
+      <div class="panel" style="position:sticky;top:70px">
+        <div class="panel-title">&#9881; Input Assumptions</div>
+        <div class="panel-body">
+          <div class="section-label">Property Details</div>
+          <div class="input-group">
+            <label>Property Value (AED)</label>
+            <input type="number" id="m1_propValue" value="2000000" onchange="calcModel1()">
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Payment Plan</label>
+              <select id="m1_plan" onchange="m1PlanChange();calcModel1()">
+                <option value="20/80">20/80</option>
+                <option value="30/70">30/70</option>
+                <option value="40/60">40/60</option>
+                <option value="50/50">50/50</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Down Payment %</label>
+              <input type="number" id="m1_downPct" value="20" step="1" onchange="calcModel1()">
+            </div>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Misc Costs %</label>
+              <input type="number" id="m1_miscPct" value="7" step="0.5" onchange="calcModel1()">
+            </div>
+            <div class="input-group">
+              <label>Add'l % to Sell</label>
+              <input type="number" id="m1_addPct" value="10" step="1" onchange="calcModel1()">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Early Sale Profit %</label>
+            <div class="range-row">
+              <input type="range" id="m1_earlyProfit" min="5" max="50" value="20" oninput="$('#m1_earlyProfitVal').textContent=this.value+'%';calcModel1()">
+              <span class="range-val" id="m1_earlyProfitVal">20%</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Construction Period (Years)</label>
+            <div class="range-row">
+              <input type="range" id="m1_consPeriod" min="1" max="5" value="3" oninput="$('#m1_consPeriodVal').textContent=this.value;calcModel1()">
+              <span class="range-val" id="m1_consPeriodVal">3</span>
+            </div>
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Loan Details (Post-Handover)</div>
+          <div class="input-group">
+            <label>Interest Rate % p.a.</label>
+            <div class="range-row">
+              <input type="range" id="m1_intRate" min="1" max="12" value="5" step="0.25" oninput="$('#m1_intRateVal').textContent=this.value+'%';calcModel1()">
+              <span class="range-val" id="m1_intRateVal">5%</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Loan Tenure (Years)</label>
+            <div class="range-row">
+              <input type="range" id="m1_tenure" min="5" max="15" value="7" oninput="$('#m1_tenureVal').textContent=this.value;m1BuildStockReturns();calcModel1()">
+              <span class="range-val" id="m1_tenureVal">7</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Annual Rental Income (AED)</label>
+            <input type="number" id="m1_rental" value="110000" step="5000" onchange="calcModel1()">
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Property Appreciation</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>During Constr. %</label>
+              <input type="number" id="m1_appConst" value="20" step="5" onchange="calcModel1()">
+            </div>
+            <div class="input-group">
+              <label>Post-Loan %</label>
+              <input type="number" id="m1_appPost" value="50" step="5" onchange="calcModel1()">
+            </div>
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Stock Market</div>
+          <div class="input-group">
+            <label>Year-wise Annual Returns (%)</label>
+            <div class="stock-returns-grid" id="m1_stockReturns"></div>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Lock-in (Years)</label>
+              <input type="number" id="m1_lockIn" value="3" min="0" max="10" onchange="calcModel1()">
+            </div>
+            <div class="input-group">
+              <label>Qtr Withdrawal %</label>
+              <input type="number" id="m1_qtrWith" value="2" step="0.5" min="0" onchange="calcModel1()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <!-- RESULTS -->
+      <div id="m1_results"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MODEL 2 ==================== -->
+<section id="model2" class="model-section">
+  <div class="model-header">
+    <h2>Staggered Payment + Equity vs Full Upfront Purchase</h2>
+    <p>Compare staggered property payments funded by equity withdrawals against full upfront purchase with discount</p>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="panel" style="position:sticky;top:70px">
+        <div class="panel-title">&#9881; Input Assumptions</div>
+        <div class="panel-body">
+          <div class="section-label">General</div>
+          <div class="input-group">
+            <label>Total Available Cash (AED)</label>
+            <input type="number" id="m2_totalCash" value="2000000" onchange="calcModel2()">
+          </div>
+          <div class="input-group">
+            <label>Property Value (AED)</label>
+            <input type="number" id="m2_propValue" value="2000000" onchange="calcModel2()">
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Builder Payment %</label>
+              <input type="number" id="m2_builderPct" value="37" onchange="calcModel2()">
+            </div>
+            <div class="input-group">
+              <label>Construction (Yrs)</label>
+              <input type="number" id="m2_consPeriod" value="3" min="1" max="5" onchange="calcModel2()">
+            </div>
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Scenario 1: Equity Allocation</div>
+          <div class="input-group">
+            <label>Avg Equity Return % p.a.</label>
+            <div class="range-row">
+              <input type="range" id="m2_eqReturn" min="5" max="40" value="25" oninput="$('#m2_eqReturnVal').textContent=this.value+'%';calcModel2()">
+              <span class="range-val" id="m2_eqReturnVal">25%</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Year-wise Equity Returns (%)</label>
+            <div class="stock-returns-grid" id="m2_eqReturns"></div>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Qtr Withdrawal (AED)</label>
+              <input type="number" id="m2_qtrWith" value="60000" step="5000" onchange="calcModel2()">
+            </div>
+            <div class="input-group">
+              <label>Annual Rental (AED)</label>
+              <input type="number" id="m2_rental" value="110000" step="5000" onchange="calcModel2()">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Rental Treatment</label>
+            <select id="m2_rentalTreat" onchange="calcModel2()">
+              <option value="cash">Accumulate as Cash</option>
+              <option value="reinvest">Reinvest in Equity</option>
+            </select>
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Scenario 2: Full Upfront</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Upfront Discount %</label>
+              <input type="number" id="m2_discount" value="30" step="5" onchange="calcModel2()">
+            </div>
+            <div class="input-group">
+              <label>Sale Profit % (3yr)</label>
+              <input type="number" id="m2_saleProfit3" value="25" step="5" onchange="calcModel2()">
+            </div>
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Property Appreciation</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Post-Mortgage %</label>
+              <input type="number" id="m2_appPost" value="60" step="5" onchange="calcModel2()">
+            </div>
+            <div class="input-group">
+              <label>Horizon (Years)</label>
+              <input type="number" id="m2_horizon" value="10" min="5" max="15" onchange="m2BuildReturns();calcModel2()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div id="m2_results"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MODEL 3 ==================== -->
+<section id="model3" class="model-section">
+  <div class="model-header">
+    <h2>Builder's Perspective: Discount vs Standard Sale</h2>
+    <p>Evaluate whether offering a steep upfront discount and investing surplus yields better returns than standard payment plans</p>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="panel" style="position:sticky;top:70px">
+        <div class="panel-title">&#9881; Input Assumptions</div>
+        <div class="panel-body">
+          <div class="section-label">Property Details</div>
+          <div class="input-group">
+            <label>Market Selling Price (AED)</label>
+            <input type="number" id="m3_sellPrice" value="2000000" onchange="calcModel3()">
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Size (sqft)</label>
+              <input type="number" id="m3_size" value="1250" onchange="calcModel3()">
+            </div>
+            <div class="input-group">
+              <label>Cost/sqft (AED)</label>
+              <input type="number" id="m3_costSqft" value="850" onchange="calcModel3()">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Construction Period (Years)</label>
+            <input type="number" id="m3_consPeriod" value="3" min="1" max="5" onchange="calcModel3()">
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Scenario 1: Discount Sale</div>
+          <div class="input-group">
+            <label>Upfront Discount %</label>
+            <div class="range-row">
+              <input type="range" id="m3_discount" min="5" max="50" value="30" oninput="$('#m3_discountVal').textContent=this.value+'%';calcModel3()">
+              <span class="range-val" id="m3_discountVal">30%</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>% of Cash Invested in Equity</label>
+            <div class="range-row">
+              <input type="range" id="m3_eqPct" min="10" max="100" value="80" oninput="$('#m3_eqPctVal').textContent=this.value+'%';calcModel3()">
+              <span class="range-val" id="m3_eqPctVal">80%</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Equity Return % p.a.</label>
+            <div class="range-row">
+              <input type="range" id="m3_eqReturn" min="5" max="40" value="25" oninput="$('#m3_eqReturnVal').textContent=this.value+'%';calcModel3()">
+              <span class="range-val" id="m3_eqReturnVal">25%</span>
+            </div>
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Scenario 2: Standard Sale</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>During Constr. %</label>
+              <input type="number" id="m3_stdConst" value="30" onchange="calcModel3()">
+            </div>
+            <div class="input-group">
+              <label>At Handover %</label>
+              <input type="number" id="m3_stdHandover" value="70" onchange="calcModel3()">
+            </div>
+          </div>
+          <hr class="section-divider">
+          <div class="section-label">Bank Loan (Builder)</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Interest Rate %</label>
+              <input type="number" id="m3_intRate" value="5" step="0.25" onchange="calcModel3()">
+            </div>
+            <div class="input-group">
+              <label>Tenure (Years)</label>
+              <input type="number" id="m3_tenure" value="7" min="5" max="10" onchange="calcModel3()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div id="m3_results"></div>
+    </div>
+  </div>
+</section>
+
+<div class="export-bar">
+  <button class="btn btn-gold" onclick="exportExcel(1)">&#128190; Export Model 1 to Excel</button>
+  <button class="btn btn-blue" onclick="exportExcel(2)">&#128190; Export Model 2 to Excel</button>
+  <button class="btn btn-green" onclick="exportExcel(3)">&#128190; Export Model 3 to Excel</button>
+  <button class="btn btn-gold" onclick="exportExcel(0)" style="background:var(--navy);color:var(--gold)">&#128190; Export All Models</button>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const v=id=>parseFloat(document.getElementById(id).value)||0;
+const fmt=n=>{if(Math.abs(n)>=1e6)return'AED '+(n/1e6).toFixed(2)+'M';return'AED '+n.toLocaleString('en-US',{maximumFractionDigits:0})};
+const fmtN=n=>n.toLocaleString('en-US',{maximumFractionDigits:0});
+const fmtPct=n=>n.toFixed(2)+'%';
+const pn=(n,noAed)=>{const s=noAed?fmtN(Math.abs(n)):fmt(Math.abs(n));return n>=0?`<span class="pos">${s}</span>`:`<span class="neg">(${s})</span>`};
+let charts={};
+
+function switchModel(n){
+  $$('.model-section').forEach(s=>s.classList.remove('active'));
+  $$('.tab').forEach(t=>t.classList.remove('active'));
+  $(`#model${n}`).classList.add('active');
+  $$('.tab')[n-1].classList.add('active');
+}
+
+function m1PlanChange(){
+  const plan=v('m1_plan')||$('#m1_plan').value;
+  const down=parseInt($('#m1_plan').value.split('/')[0]);
+  $('#m1_downPct').value=down;
+}
+
+function m1BuildStockReturns(){
+  const tenure=v('m1_tenure');
+  const container=$('#m1_stockReturns');
+  const existing=[];
+  container.querySelectorAll('input').forEach(inp=>existing.push(parseFloat(inp.value)||10));
+  let html='';
+  for(let i=1;i<=tenure;i++){
+    const val=existing[i-1]||10;
+    html+=`<div class="yr-input"><label>Y${i}</label><input type="number" id="m1_sr_${i}" value="${val}" step="1" style="background:var(--input-bg)" onchange="calcModel1()"></div>`;
+  }
+  container.innerHTML=html;
+}
+
+function m2BuildReturns(){
+  const horizon=v('m2_horizon');
+  const container=$('#m2_eqReturns');
+  const existing=[];
+  container.querySelectorAll('input').forEach(inp=>existing.push(parseFloat(inp.value)||25));
+  let html='';
+  for(let i=1;i<=horizon;i++){
+    const val=existing[i-1]||25;
+    html+=`<div class="yr-input"><label>Y${i}</label><input type="number" id="m2_er_${i}" value="${val}" step="1" style="background:var(--input-bg)" onchange="calcModel2()"></div>`;
+  }
+  container.innerHTML=html;
+}
+
+// ===================== MODEL 1 CALCULATIONS =====================
+function calcModel1(){
+  const propVal=v('m1_propValue');
+  const downPct=v('m1_downPct')/100;
+  const miscPct=v('m1_miscPct')/100;
+  const addPct=v('m1_addPct')/100;
+  const earlyProfit=v('m1_earlyProfit')/100;
+  const consPeriod=v('m1_consPeriod');
+  const intRate=v('m1_intRate')/100;
+  const tenure=v('m1_tenure');
+  const rental=v('m1_rental');
+  const appConst=v('m1_appConst')/100;
+  const appPost=v('m1_appPost')/100;
+  const lockIn=v('m1_lockIn');
+  const qtrWith=v('m1_qtrWith')/100;
+
+  // -- EARLY EXIT --
+  const downPay=propVal*downPct;
+  const miscCost=propVal*miscPct;
+  const addPay=propVal*addPct;
+  const totalInitial=downPay+miscCost;
+  const totalToSell=downPay+addPay+miscCost;
+  const sellingPrice=propVal*(1+earlyProfit);
+  const grossProfit=propVal*earlyProfit;
+  const netProfit=grossProfit;
+  const roi=(netProfit/totalToSell)*100;
+  const annReturn=(Math.pow(1+netProfit/totalToSell,1/consPeriod)-1)*100;
+
+  // -- HOLD-TO-COMPLETION --
+  const loanPct=1-downPct;
+  const loanAmt=propVal*loanPct;
+  const monthlyRate=intRate/12;
+  const nMonths=tenure*12;
+  const emi=loanAmt*monthlyRate*Math.pow(1+monthlyRate,nMonths)/(Math.pow(1+monthlyRate,nMonths)-1);
+  const annualEMI=emi*12;
+
+  let amortData=[];
+  let outstanding=loanAmt;
+  let totalInterest=0;
+  let totalOOP=totalToSell;
+  let totalRentalIncome=0;
+
+  for(let yr=1;yr<=tenure;yr++){
+    const opening=outstanding;
+    let yrInterest=0,yrPrincipal=0;
+    for(let m=1;m<=12;m++){
+      const intPay=outstanding*monthlyRate;
+      const prinPay=emi-intPay;
+      yrInterest+=intPay;
+      yrPrincipal+=prinPay;
+      outstanding-=prinPay;
+    }
+    if(outstanding<0)outstanding=0;
+    totalInterest+=yrInterest;
+    const surplus=rental-annualEMI;
+    if(surplus<0)totalOOP+=Math.abs(surplus);
+    totalRentalIncome+=rental;
+    amortData.push({year:yr,opening:opening,payment:annualEMI,interest:yrInterest,principal:yrPrincipal,closing:outstanding,rental:rental,surplus:surplus});
+  }
+
+  const propValueConst=propVal*(1+appConst);
+  const propValueFinal=propVal*(1+appPost);
+  const netEquity=propValueFinal;
+  const holdTotalWealth=netEquity+totalRentalIncome-(totalToSell+totalInterest+(totalOOP-totalToSell));
+
+  // -- STOCK MARKET --
+  const stockInit=totalToSell;
+  let stockBalance=stockInit;
+  let totalWithdrawals=0;
+  let stockData=[];
+
+  for(let yr=1;yr<=tenure;yr++){
+    const retPct=(parseFloat(document.getElementById(`m1_sr_${yr}`)?.value)||10)/100;
+    const opening=stockBalance;
+    if(yr<=lockIn){
+      const gain=opening*retPct;
+      stockBalance=opening+gain;
+      stockData.push({year:yr,opening,retPct:retPct*100,gain,withdrawals:0,closing:stockBalance});
+    }else{
+      let bal=opening;
+      let yrWith=0;
+      const qRate=Math.pow(1+retPct,0.25)-1;
+      for(let q=1;q<=4;q++){
+        const qGain=bal*qRate;
+        bal+=qGain;
+        const w=bal*qtrWith;
+        bal-=w;
+        yrWith+=w;
+      }
+      const gain=bal-opening+yrWith;
+      totalWithdrawals+=yrWith;
+      stockBalance=bal;
+      stockData.push({year:yr,opening,retPct:retPct*100,gain:gain-yrWith,withdrawals:yrWith,closing:stockBalance});
+    }
+  }
+
+  const cagr=(Math.pow((stockBalance+totalWithdrawals)/stockInit,1/tenure)-1)*100;
+
+  // Comparison
+  const propEarlyWealth=totalToSell+netProfit;
+  const propHoldWealth=propValueFinal+totalRentalIncome-totalInterest;
+  const stockWealth=stockBalance+totalWithdrawals;
+
+  // RENDER
+  let html='';
+
+  // Summary Cards
+  html+=`<div class="summary-cards">
+    <div class="s-card"><div class="label">Initial Cash Required</div><div class="value">${fmt(totalToSell)}</div><div class="sub">${(totalToSell/propVal*100).toFixed(0)}% of Property</div></div>
+    <div class="s-card green"><div class="label">Early Exit ROI</div><div class="value">${fmtPct(roi)}</div><div class="sub">Over ${consPeriod} years</div></div>
+    <div class="s-card blue"><div class="label">Monthly EMI</div><div class="value">${fmt(emi)}</div><div class="sub">${tenure} year loan</div></div>
+    <div class="s-card"><div class="label">Stock Final Value</div><div class="value">${fmt(stockBalance)}</div><div class="sub">CAGR: ${fmtPct(cagr)}</div></div>
+  </div>`;
+
+  // A. Early Exit
+  html+=`<div class="panel results-section"><div class="panel-title">A. Early Exit (During Construction)</div><div class="panel-body">
+    <table><thead><tr><th>Metric</th><th class="num">Value</th></tr></thead><tbody>
+    <tr><td>Property Value</td><td class="num">${fmt(propVal)}</td></tr>
+    <tr><td>Down Payment (${(downPct*100).toFixed(0)}%)</td><td class="num">${fmt(downPay)}</td></tr>
+    <tr><td>Additional Payment (${(addPct*100).toFixed(0)}%)</td><td class="num">${fmt(addPay)}</td></tr>
+    <tr><td>Miscellaneous Costs (${(miscPct*100).toFixed(0)}%)</td><td class="num">${fmt(miscCost)}</td></tr>
+    <tr class="highlight-row"><td>Total Cash Invested</td><td class="num">${fmt(totalToSell)}</td></tr>
+    <tr><td>Selling Price (${(earlyProfit*100).toFixed(0)}% profit)</td><td class="num">${fmt(sellingPrice)}</td></tr>
+    <tr><td>Gross Profit</td><td class="num">${pn(grossProfit)}</td></tr>
+    <tr class="highlight-row"><td>Net Profit</td><td class="num">${pn(netProfit)}</td></tr>
+    <tr><td>ROI</td><td class="num"><strong>${fmtPct(roi)}</strong></td></tr>
+    <tr><td>Annualized Return</td><td class="num"><strong>${fmtPct(annReturn)}</strong></td></tr>
+    </tbody></table></div></div>`;
+
+  // B. Hold-to-Completion
+  html+=`<div class="panel results-section"><div class="panel-title">B. Hold-to-Completion</div><div class="panel-body">
+    <div class="summary-cards" style="margin-bottom:16px">
+      <div class="s-card"><div class="label">Loan Amount</div><div class="value">${fmt(loanAmt)}</div></div>
+      <div class="s-card"><div class="label">Monthly EMI</div><div class="value">${fmt(emi)}</div></div>
+      <div class="s-card"><div class="label">Total Interest</div><div class="value">${fmt(totalInterest)}</div></div>
+      <div class="s-card green"><div class="label">Property Value (Final)</div><div class="value">${fmt(propValueFinal)}</div></div>
+    </div>
+    <h3 style="font-size:14px;margin-bottom:8px">Amortization Schedule & Rent vs EMI</h3>
+    <div class="amort-table"><table><thead><tr>
+      <th>Year</th><th class="num">Opening Bal</th><th class="num">Annual EMI</th><th class="num">Interest</th><th class="num">Principal</th><th class="num">Closing Bal</th><th class="num">Rental</th><th class="num">Surplus/Shortfall</th>
+    </tr></thead><tbody>`;
+  amortData.forEach(r=>{
+    html+=`<tr><td>Year ${r.year}</td><td class="num">${fmtN(Math.round(r.opening))}</td><td class="num">${fmtN(Math.round(r.payment))}</td><td class="num">${fmtN(Math.round(r.interest))}</td><td class="num">${fmtN(Math.round(r.principal))}</td><td class="num">${fmtN(Math.round(r.closing))}</td><td class="num">${fmtN(r.rental)}</td><td class="num">${pn(r.surplus,true)}</td></tr>`;
+  });
+  html+=`<tr class="total-row"><td>Total</td><td></td><td class="num">${fmtN(Math.round(annualEMI*tenure))}</td><td class="num">${fmtN(Math.round(totalInterest))}</td><td class="num">${fmtN(Math.round(loanAmt))}</td><td></td><td class="num">${fmtN(totalRentalIncome)}</td><td class="num">${pn(totalRentalIncome-annualEMI*tenure,true)}</td></tr>`;
+  html+=`</tbody></table></div>
+    <div style="margin-top:16px"><table><thead><tr><th>Investment Summary</th><th class="num">Value</th></tr></thead><tbody>
+    <tr><td>Total Cash Invested by Investor</td><td class="num">${fmt(totalOOP)}</td></tr>
+    <tr><td>Total Rental Income</td><td class="num">${fmt(totalRentalIncome)}</td></tr>
+    <tr><td>Total Interest Paid</td><td class="num"><span class="neg">${fmt(totalInterest)}</span></td></tr>
+    <tr><td>Property Value After Construction (+${(appConst*100).toFixed(0)}%)</td><td class="num">${fmt(propValueConst)}</td></tr>
+    <tr class="highlight-row"><td>Final Property Value (+${(appPost*100).toFixed(0)}%)</td><td class="num">${fmt(propValueFinal)}</td></tr>
+    <tr><td>Net Equity (Property Owned Outright)</td><td class="num">${fmt(propValueFinal)}</td></tr>
+    </tbody></table></div></div></div>`;
+
+  // Stock Market
+  html+=`<div class="panel results-section"><div class="panel-title">Stock Market Investment</div><div class="panel-body">
+    <div class="summary-cards" style="margin-bottom:16px">
+      <div class="s-card"><div class="label">Initial Investment</div><div class="value">${fmt(stockInit)}</div></div>
+      <div class="s-card green"><div class="label">Final Portfolio</div><div class="value">${fmt(stockBalance)}</div></div>
+      <div class="s-card blue"><div class="label">Total Withdrawals</div><div class="value">${fmt(totalWithdrawals)}</div></div>
+      <div class="s-card"><div class="label">CAGR</div><div class="value">${fmtPct(cagr)}</div></div>
+    </div>
+    <div class="amort-table"><table><thead><tr>
+      <th>Year</th><th class="num">Opening</th><th class="num">Return %</th><th class="num">Gain</th><th class="num">Withdrawals</th><th class="num">Closing</th>
+    </tr></thead><tbody>`;
+  stockData.forEach(r=>{
+    html+=`<tr><td>Year ${r.year}</td><td class="num">${fmtN(Math.round(r.opening))}</td><td class="num">${r.retPct.toFixed(1)}%</td><td class="num">${pn(r.gain,true)}</td><td class="num">${r.withdrawals>0?fmtN(Math.round(r.withdrawals)):'-'}</td><td class="num">${fmtN(Math.round(r.closing))}</td></tr>`;
+  });
+  html+=`</tbody></table></div></div></div>`;
+
+  // Comparison
+  const scenarios=[
+    {name:'Property: Early Exit',investment:totalToSell,duration:consPeriod+' yrs',totalReturn:netProfit,roi:roi,finalWealth:propEarlyWealth,liquidity:'Low (Illiquid)'},
+    {name:'Property: Hold',investment:totalOOP,duration:(consPeriod+tenure)+' yrs',totalReturn:propValueFinal+totalRentalIncome-totalOOP-totalInterest,roi:((propValueFinal+totalRentalIncome-totalOOP-totalInterest)/totalOOP*100),finalWealth:propHoldWealth,liquidity:'Low (Illiquid)'},
+    {name:'Stock Market',investment:stockInit,duration:tenure+' yrs',totalReturn:stockBalance+totalWithdrawals-stockInit,roi:((stockBalance+totalWithdrawals-stockInit)/stockInit*100),finalWealth:stockWealth,liquidity:'High (Liquid)'}
+  ];
+  const bestIdx=scenarios.reduce((best,s,i)=>s.finalWealth>scenarios[best].finalWealth?i:best,0);
+
+  html+=`<div class="panel results-section"><div class="panel-title">&#9733; Final Comparison</div><div class="panel-body">
+    <table class="comparison-table"><thead><tr><th>Metric</th>${scenarios.map((s,i)=>`<th class="${i===bestIdx?'winner':''}">${s.name}</th>`).join('')}</tr></thead><tbody>
+    <tr><td>Initial Cash</td>${scenarios.map(s=>`<td class="num">${fmt(s.investment)}</td>`).join('')}</tr>
+    <tr><td>Duration</td>${scenarios.map(s=>`<td class="num">${s.duration}</td>`).join('')}</tr>
+    <tr><td>Total Net Return</td>${scenarios.map(s=>`<td class="num">${pn(s.totalReturn)}</td>`).join('')}</tr>
+    <tr><td>ROI</td>${scenarios.map(s=>`<td class="num">${fmtPct(s.roi)}</td>`).join('')}</tr>
+    <tr class="highlight-row"><td>Final Wealth</td>${scenarios.map((s,i)=>`<td class="num ${i===bestIdx?'winner':''}">${fmt(s.finalWealth)}</td>`).join('')}</tr>
+    <tr><td>Liquidity</td>${scenarios.map(s=>`<td>${s.liquidity}</td>`).join('')}</tr>
+    </tbody></table>
+    <div style="text-align:center;margin-top:12px"><span class="winner-badge">&#9733; Winner: ${scenarios[bestIdx].name} (${fmt(scenarios[bestIdx].finalWealth)})</span></div>
+  </div></div>`;
+
+  // Charts
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="chart-container"><canvas id="m1_chart1"></canvas></div>
+    <div class="chart-container"><canvas id="m1_chart2"></canvas></div>
+  </div>`;
+
+  $('#m1_results').innerHTML=html;
+
+  // Render charts
+  renderChart('m1_chart1','bar',{
+    labels:scenarios.map(s=>s.name),
+    datasets:[{label:'Final Wealth (AED)',data:scenarios.map(s=>Math.round(s.finalWealth)),backgroundColor:['#c9a84c','#27ae60','#3498db']}]
+  },{plugins:{title:{display:true,text:'Final Wealth Comparison'}}});
+
+  const growthLabels=Array.from({length:tenure},(_,i)=>`Year ${i+1}`);
+  const propGrowth=amortData.map(r=>Math.round(propVal-r.closing+totalRentalIncome/tenure*r.year));
+  const stockGrowth=stockData.map(r=>Math.round(r.closing));
+  renderChart('m1_chart2','line',{
+    labels:growthLabels,
+    datasets:[
+      {label:'Property Equity',data:propGrowth,borderColor:'#27ae60',backgroundColor:'rgba(39,174,96,0.1)',fill:true,tension:0.3},
+      {label:'Stock Portfolio',data:stockGrowth,borderColor:'#3498db',backgroundColor:'rgba(52,152,219,0.1)',fill:true,tension:0.3}
+    ]
+  },{plugins:{title:{display:true,text:'Equity/Portfolio Growth Over Time'}}});
+
+  window.m1Data={amortData,stockData,scenarios,totalToSell,totalInterest,totalRentalIncome,propValueFinal,stockBalance,totalWithdrawals,emi,loanAmt,propVal,tenure,consPeriod,totalOOP};
+}
+
+// ===================== MODEL 2 CALCULATIONS =====================
+function calcModel2(){
+  const totalCash=v('m2_totalCash');
+  const propVal=v('m2_propValue');
+  const builderPct=v('m2_builderPct')/100;
+  const consPeriod=v('m2_consPeriod');
+  const qtrWith=v('m2_qtrWith');
+  const rental=v('m2_rental');
+  const rentalTreat=$('#m2_rentalTreat').value;
+  const discount=v('m2_discount')/100;
+  const saleProfit3=v('m2_saleProfit3')/100;
+  const appPost=v('m2_appPost')/100;
+  const horizon=v('m2_horizon');
+
+  // Scenario 1: Staggered + Equity
+  const toBuilder=totalCash*builderPct;
+  const toEquity=totalCash-toBuilder;
+  const annualWithdrawal=qtrWith*4;
+
+  let eqBalance=toEquity;
+  let totalWith1=0;
+  let totalRental1=0;
+  let cashAccum=0;
+  let propPaid=toBuilder;
+  const propRemaining=propVal-toBuilder;
+  let propFullyPaid=false;
+  let payoffYear=null;
+  let s1Data=[];
+
+  for(let yr=1;yr<=horizon;yr++){
+    const retPct=(parseFloat(document.getElementById(`m2_er_${yr}`)?.value)||25)/100;
+    const opening=eqBalance;
+    let yrWith=0;
+    let yrRental=0;
+
+    if(yr<=consPeriod){
+      eqBalance=opening*(1+retPct);
+      s1Data.push({year:yr,eqOpening:opening,retPct:retPct*100,eqClosing:eqBalance,withdrawals:0,rental:0,propPaid,propRemaining:propVal-propPaid,cashAccum});
+    }else{
+      let bal=opening;
+      const qRate=Math.pow(1+retPct,0.25)-1;
+      for(let q=1;q<=4;q++){
+        bal=bal*(1+qRate);
+        if(!propFullyPaid&&bal>0){
+          const w=Math.min(qtrWith,bal,propVal-propPaid);
+          bal-=w;
+          yrWith+=w;
+          propPaid+=w;
+          if(propPaid>=propVal){propFullyPaid=true;if(!payoffYear)payoffYear=yr;}
+        }
+      }
+      totalWith1+=yrWith;
+      yrRental=rental;
+      totalRental1+=yrRental;
+      if(rentalTreat==='reinvest'){bal+=yrRental;}else{cashAccum+=yrRental;}
+      eqBalance=bal;
+      s1Data.push({year:yr,eqOpening:opening,retPct:retPct*100,eqClosing:eqBalance,withdrawals:yrWith,rental:yrRental,propPaid,propRemaining:Math.max(0,propVal-propPaid),cashAccum});
+    }
+  }
+
+  const finalPropValue1=propFullyPaid?propVal*(1+appPost):propVal;
+  const s1TotalWealth=eqBalance+finalPropValue1+cashAccum;
+
+  // Scenario 2: Full Upfront
+  const upfrontPrice=propVal*(1-discount);
+  const s2CashLeft=totalCash-upfrontPrice;
+  let s2Rental=0;
+  let s2Cash=s2CashLeft;
+  let s2Data=[];
+
+  for(let yr=1;yr<=horizon;yr++){
+    let yrRental=yr>consPeriod?rental:0;
+    s2Rental+=yrRental;
+    s2Cash=yr===1?s2CashLeft:s2Data[yr-2].cashAccum;
+    s2Cash+=yrRental;
+    s2Data.push({year:yr,rental:yrRental,cashAccum:s2Cash});
+  }
+
+  const s2PropAppreciation3=propVal*saleProfit3;
+  const s2PropValueFinal=propVal*(1+appPost);
+  const s2TotalWealth=s2PropValueFinal+s2Cash;
+
+  // Render
+  let html='';
+
+  html+=`<div class="summary-cards">
+    <div class="s-card"><div class="label">S1: Equity Allocated</div><div class="value">${fmt(toEquity)}</div><div class="sub">${((1-builderPct)*100).toFixed(0)}% of cash</div></div>
+    <div class="s-card green"><div class="label">S1: Final Wealth</div><div class="value">${fmt(s1TotalWealth)}</div></div>
+    <div class="s-card blue"><div class="label">S2: Upfront Price</div><div class="value">${fmt(upfrontPrice)}</div><div class="sub">${(discount*100).toFixed(0)}% discount</div></div>
+    <div class="s-card"><div class="label">S2: Final Wealth</div><div class="value">${fmt(s2TotalWealth)}</div></div>
+  </div>`;
+
+  // Scenario 1 Detail
+  html+=`<div class="panel results-section"><div class="panel-title">Scenario 1: Staggered Payment + Equity Allocation</div><div class="panel-body">
+    <table><tbody>
+    <tr><td>Cash to Builder (${(builderPct*100).toFixed(0)}%)</td><td class="num">${fmt(toBuilder)}</td></tr>
+    <tr><td>Cash to Equity Market</td><td class="num">${fmt(toEquity)}</td></tr>
+    <tr><td>Quarterly Withdrawal Amount</td><td class="num">${fmt(qtrWith)}</td></tr>
+    <tr><td>Property Fully Paid Year</td><td class="num">${payoffYear?'Year '+payoffYear:'Not within horizon'}</td></tr>
+    </tbody></table>
+    <h3 style="font-size:14px;margin:16px 0 8px">Year-by-Year Tracking</h3>
+    <div class="amort-table"><table><thead><tr>
+      <th>Year</th><th class="num">Equity Opening</th><th class="num">Return %</th><th class="num">Withdrawals</th><th class="num">Rental</th><th class="num">Equity Closing</th><th class="num">Prop. Paid</th><th class="num">Prop. Remaining</th>
+    </tr></thead><tbody>`;
+  s1Data.forEach(r=>{
+    html+=`<tr${r.propRemaining<=0?' class="highlight-row"':''}>
+      <td>Year ${r.year}</td><td class="num">${fmtN(Math.round(r.eqOpening))}</td><td class="num">${r.retPct.toFixed(1)}%</td>
+      <td class="num">${r.withdrawals>0?fmtN(Math.round(r.withdrawals)):'-'}</td>
+      <td class="num">${r.rental>0?fmtN(r.rental):'-'}</td>
+      <td class="num">${fmtN(Math.round(r.eqClosing))}</td>
+      <td class="num">${fmtN(Math.round(r.propPaid))}</td>
+      <td class="num">${fmtN(Math.round(r.propRemaining))}</td></tr>`;
+  });
+  html+=`</tbody></table></div>
+    <div style="margin-top:12px"><table><tbody>
+    <tr class="highlight-row"><td>Final Equity Portfolio</td><td class="num">${fmt(eqBalance)}</td></tr>
+    <tr><td>Total Withdrawals (to Property)</td><td class="num">${fmt(totalWith1)}</td></tr>
+    <tr><td>Total Rental Income</td><td class="num">${fmt(totalRental1)}</td></tr>
+    <tr><td>Accumulated Cash</td><td class="num">${fmt(cashAccum)}</td></tr>
+    <tr><td>Final Property Value (+${(appPost*100).toFixed(0)}%)</td><td class="num">${fmt(finalPropValue1)}</td></tr>
+    <tr class="highlight-row"><td>S1 Total Wealth</td><td class="num"><strong>${fmt(s1TotalWealth)}</strong></td></tr>
+    </tbody></table></div></div></div>`;
+
+  // Scenario 2 Detail
+  html+=`<div class="panel results-section"><div class="panel-title">Scenario 2: Full Upfront Purchase (${(discount*100).toFixed(0)}% Discount)</div><div class="panel-body">
+    <table><tbody>
+    <tr><td>Market Value</td><td class="num">${fmt(propVal)}</td></tr>
+    <tr><td>Discount (${(discount*100).toFixed(0)}%)</td><td class="num"><span class="pos">${fmt(propVal*discount)}</span></td></tr>
+    <tr><td>Purchase Price</td><td class="num">${fmt(upfrontPrice)}</td></tr>
+    <tr><td>Remaining Cash</td><td class="num">${fmt(s2CashLeft)}</td></tr>
+    <tr><td>Sale Profit at ${consPeriod} Yrs (${(saleProfit3*100).toFixed(0)}% on AED 2M base)</td><td class="num">${fmt(s2PropAppreciation3)}</td></tr>
+    <tr><td>Property Value End (+${(appPost*100).toFixed(0)}%)</td><td class="num">${fmt(s2PropValueFinal)}</td></tr>
+    <tr><td>Total Rental Collected</td><td class="num">${fmt(s2Rental)}</td></tr>
+    <tr><td>Cash at End</td><td class="num">${fmt(s2Cash)}</td></tr>
+    <tr class="highlight-row"><td>S2 Total Wealth</td><td class="num"><strong>${fmt(s2TotalWealth)}</strong></td></tr>
+    </tbody></table></div></div>`;
+
+  // Comparison
+  const s1Better=s1TotalWealth>s2TotalWealth;
+  html+=`<div class="panel results-section"><div class="panel-title">&#9733; Comparison: Which Strategy Wins?</div><div class="panel-body">
+    <table class="comparison-table"><thead><tr><th>Metric</th><th class="${s1Better?'winner':''}">S1: Staggered + Equity</th><th class="${!s1Better?'winner':''}">S2: Full Upfront</th></tr></thead><tbody>
+    <tr><td>Initial Cash Used</td><td class="num">${fmt(totalCash)}</td><td class="num">${fmt(upfrontPrice)}</td></tr>
+    <tr><td>Equity Portfolio (Final)</td><td class="num">${fmt(eqBalance)}</td><td class="num">N/A</td></tr>
+    <tr><td>Property Value (Final)</td><td class="num">${fmt(finalPropValue1)}</td><td class="num">${fmt(s2PropValueFinal)}</td></tr>
+    <tr><td>Cash/Rental Accumulated</td><td class="num">${fmt(cashAccum)}</td><td class="num">${fmt(s2Cash)}</td></tr>
+    <tr><td>Property Payoff Year</td><td class="num">${payoffYear?'Year '+payoffYear:'N/A'}</td><td class="num">Year 1</td></tr>
+    <tr class="highlight-row"><td>Total Wealth</td><td class="num ${s1Better?'winner':''}">${fmt(s1TotalWealth)}</td><td class="num ${!s1Better?'winner':''}">${fmt(s2TotalWealth)}</td></tr>
+    </tbody></table>
+    <div style="text-align:center;margin-top:12px"><span class="winner-badge">&#9733; Winner: ${s1Better?'Staggered + Equity':'Full Upfront Purchase'} (${fmt(s1Better?s1TotalWealth:s2TotalWealth)})</span></div>
+  </div></div>`;
+
+  // Charts
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="chart-container"><canvas id="m2_chart1"></canvas></div>
+    <div class="chart-container"><canvas id="m2_chart2"></canvas></div>
+  </div>`;
+
+  $('#m2_results').innerHTML=html;
+
+  renderChart('m2_chart1','bar',{
+    labels:['S1: Staggered+Equity','S2: Full Upfront'],
+    datasets:[
+      {label:'Property Value',data:[Math.round(finalPropValue1),Math.round(s2PropValueFinal)],backgroundColor:'#27ae60'},
+      {label:'Equity/Cash',data:[Math.round(eqBalance+cashAccum),Math.round(s2Cash)],backgroundColor:'#3498db'}
+    ]
+  },{plugins:{title:{display:true,text:'Wealth Breakdown'},legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true}}});
+
+  const m2Labels=s1Data.map(d=>'Y'+d.year);
+  const eqLine=s1Data.map(d=>Math.round(d.eqClosing));
+  const wealthLine1=s1Data.map(d=>Math.round(d.eqClosing+d.propPaid+(rentalTreat==='cash'?d.cashAccum:0)));
+  const wealthLine2=s2Data.map(d=>Math.round(s2PropValueFinal/horizon*d.year+d.cashAccum));
+  renderChart('m2_chart2','line',{
+    labels:m2Labels,
+    datasets:[
+      {label:'S1 Net Worth',data:wealthLine1,borderColor:'#c9a84c',tension:0.3,fill:false},
+      {label:'S2 Net Worth',data:wealthLine2,borderColor:'#3498db',tension:0.3,fill:false},
+      {label:'S1 Equity Only',data:eqLine,borderColor:'#27ae60',borderDash:[5,5],tension:0.3,fill:false}
+    ]
+  },{plugins:{title:{display:true,text:'Net Worth Over Time'},legend:{position:'bottom'}}});
+
+  window.m2Data={s1Data,s2Data,s1TotalWealth,s2TotalWealth,toBuilder,toEquity,totalWith1,totalRental1,payoffYear,cashAccum,eqBalance,finalPropValue1,s2PropValueFinal,upfrontPrice,s2Cash,s2Rental};
+}
+
+// ===================== MODEL 3 CALCULATIONS =====================
+function calcModel3(){
+  const sellPrice=v('m3_sellPrice');
+  const size=v('m3_size');
+  const costSqft=v('m3_costSqft');
+  const consPeriod=v('m3_consPeriod');
+  const discount=v('m3_discount')/100;
+  const eqPct=v('m3_eqPct')/100;
+  const eqReturn=v('m3_eqReturn')/100;
+  const stdConst=v('m3_stdConst')/100;
+  const stdHandover=v('m3_stdHandover')/100;
+  const intRate=v('m3_intRate')/100;
+  const tenure=v('m3_tenure');
+
+  const totalConsCost=size*costSqft;
+  const priceSqft=sellPrice/size;
+
+  // Scenario 1: Discount + Invest
+  const discPrice=sellPrice*(1-discount);
+  const cashReceived=discPrice;
+  const toEquity=cashReceived*eqPct;
+  const cashRetained=cashReceived-toEquity;
+
+  const loanNeeded1=Math.max(0,totalConsCost-cashRetained);
+  const monthlyRate1=intRate/12;
+  const nMonths1=tenure*12;
+  const emi1=loanNeeded1>0?loanNeeded1*monthlyRate1*Math.pow(1+monthlyRate1,nMonths1)/(Math.pow(1+monthlyRate1,nMonths1)-1):0;
+
+  let eqBalance=toEquity;
+  let s1Outstanding=loanNeeded1;
+  let s1TotalInterest=0;
+  let s1Data=[];
+
+  for(let yr=1;yr<=tenure;yr++){
+    const eqOpening=eqBalance;
+    eqBalance=eqOpening*(1+eqReturn);
+    const eqGain=eqBalance-eqOpening;
+
+    let loanOpening=s1Outstanding;
+    let yrInterest=0,yrPrincipal=0;
+    if(loanNeeded1>0){
+      for(let m=1;m<=12;m++){
+        const intPay=s1Outstanding*monthlyRate1;
+        const prinPay=emi1-intPay;
+        yrInterest+=intPay;
+        yrPrincipal+=prinPay;
+        s1Outstanding=Math.max(0,s1Outstanding-prinPay);
+      }
+    }
+    s1TotalInterest+=yrInterest;
+
+    const netWealth=eqBalance-s1Outstanding;
+    s1Data.push({year:yr,eqOpening,eqGain,eqClosing:eqBalance,loanOpening,yrInterest,yrPrincipal,loanClosing:s1Outstanding,netWealth});
+  }
+
+  const s1Profit=discPrice-totalConsCost+eqBalance-toEquity-s1TotalInterest;
+  const s1NetWealth=eqBalance-s1Outstanding;
+  const s1ROI=(s1Profit/totalConsCost)*100;
+
+  // Scenario 2: Standard Sale
+  const s2ConstPayments=sellPrice*stdConst;
+  const s2HandoverPay=sellPrice*stdHandover;
+  const s2AnnualConstPayment=s2ConstPayments/consPeriod;
+
+  let s2LoanNeeded=totalConsCost;
+  let s2CashInflows=[];
+  for(let yr=1;yr<=consPeriod;yr++){
+    s2LoanNeeded-=s2AnnualConstPayment;
+    s2CashInflows.push({year:yr,inflow:s2AnnualConstPayment,loanAfter:Math.max(0,s2LoanNeeded)});
+  }
+  const s2LoanAtHandover=Math.max(0,totalConsCost-s2ConstPayments);
+
+  const s2FinalLoan=s2LoanAtHandover;
+  const nMonths2=tenure*12;
+  const emi2=s2FinalLoan>0?s2FinalLoan*monthlyRate1*Math.pow(1+monthlyRate1,nMonths2)/(Math.pow(1+monthlyRate1,nMonths2)-1):0;
+
+  let s2Outstanding=s2FinalLoan;
+  let s2TotalInterest=0;
+  let s2Data=[];
+
+  for(let yr=1;yr<=tenure;yr++){
+    const loanOpening=s2Outstanding;
+    let yrInterest=0,yrPrincipal=0;
+    if(s2FinalLoan>0){
+      for(let m=1;m<=12;m++){
+        const intPay=s2Outstanding*monthlyRate1;
+        const prinPay=emi2-intPay;
+        yrInterest+=intPay;
+        yrPrincipal+=prinPay;
+        s2Outstanding=Math.max(0,s2Outstanding-prinPay);
+      }
+    }
+    s2TotalInterest+=yrInterest;
+    s2Data.push({year:yr,loanOpening,yrInterest,yrPrincipal,loanClosing:s2Outstanding});
+  }
+
+  const s2TotalReceived=sellPrice;
+  const s2Profit=s2TotalReceived-totalConsCost-s2TotalInterest;
+  const s2ROI=(s2Profit/totalConsCost)*100;
+
+  // Max discount calculation
+  let maxDiscount=0;
+  for(let d=1;d<=60;d++){
+    const testPrice=sellPrice*(1-d/100);
+    const testEq=testPrice*eqPct;
+    const testCash=testPrice-testEq;
+    const testLoan=Math.max(0,totalConsCost-testCash);
+    const testEmi=testLoan>0?testLoan*monthlyRate1*Math.pow(1+monthlyRate1,nMonths1)/(Math.pow(1+monthlyRate1,nMonths1)-1):0;
+    let tBal=testEq;
+    let tOut=testLoan;
+    let tInt=0;
+    for(let yr=1;yr<=tenure;yr++){
+      tBal*=(1+eqReturn);
+      if(testLoan>0){for(let m=1;m<=12;m++){const i=tOut*monthlyRate1;tInt+=i;tOut=Math.max(0,tOut-(testEmi-i));}}
+    }
+    const tProfit=testPrice-totalConsCost+tBal-testEq-tInt;
+    if(tProfit>=s2Profit)maxDiscount=d;
+    else break;
+  }
+
+  // Render
+  let html='';
+
+  html+=`<div class="summary-cards">
+    <div class="s-card"><div class="label">Construction Cost</div><div class="value">${fmt(totalConsCost)}</div><div class="sub">${fmtN(costSqft)} AED/sqft</div></div>
+    <div class="s-card green"><div class="label">S1 Net Profit</div><div class="value">${fmt(s1Profit)}</div><div class="sub">ROI: ${fmtPct(s1ROI)}</div></div>
+    <div class="s-card blue"><div class="label">S2 Net Profit</div><div class="value">${fmt(s2Profit)}</div><div class="sub">ROI: ${fmtPct(s2ROI)}</div></div>
+    <div class="s-card"><div class="label">Max Discount</div><div class="value">${maxDiscount}%</div><div class="sub">While matching S2 profit</div></div>
+  </div>`;
+
+  // Scenario 1
+  html+=`<div class="panel results-section"><div class="panel-title">Scenario 1: Discounted Upfront Sale + Equity Investment</div><div class="panel-body">
+    <table><tbody>
+    <tr><td>Market Selling Price</td><td class="num">${fmt(sellPrice)}</td></tr>
+    <tr><td>Discount Offered (${(discount*100).toFixed(0)}%)</td><td class="num"><span class="neg">${fmt(sellPrice*discount)}</span></td></tr>
+    <tr><td>Discounted Price (Cash Received)</td><td class="num">${fmt(discPrice)}</td></tr>
+    <tr><td>Invested in Equity (${(eqPct*100).toFixed(0)}%)</td><td class="num">${fmt(toEquity)}</td></tr>
+    <tr><td>Retained for Construction</td><td class="num">${fmt(cashRetained)}</td></tr>
+    <tr><td>Construction Cost</td><td class="num">${fmt(totalConsCost)}</td></tr>
+    <tr><td>Loan Required</td><td class="num">${fmt(loanNeeded1)}</td></tr>
+    <tr><td>Monthly EMI</td><td class="num">${fmt(emi1)}</td></tr>
+    </tbody></table>
+    <h3 style="font-size:14px;margin:16px 0 8px">Investment Growth & Loan Schedule</h3>
+    <div class="amort-table"><table><thead><tr>
+      <th>Year</th><th class="num">Equity Value</th><th class="num">Equity Gain</th><th class="num">Loan Balance</th><th class="num">Interest Paid</th><th class="num">Net Wealth</th>
+    </tr></thead><tbody>`;
+  s1Data.forEach(r=>{
+    html+=`<tr><td>Year ${r.year}</td><td class="num">${fmtN(Math.round(r.eqClosing))}</td><td class="num">${pn(r.eqGain,true)}</td><td class="num">${fmtN(Math.round(r.loanClosing))}</td><td class="num">${fmtN(Math.round(r.yrInterest))}</td><td class="num">${pn(r.netWealth,true)}</td></tr>`;
+  });
+  html+=`</tbody></table></div>
+    <div style="margin-top:12px"><table><tbody>
+    <tr><td>Final Equity Value</td><td class="num">${fmt(eqBalance)}</td></tr>
+    <tr><td>Total Equity Gains</td><td class="num">${pn(eqBalance-toEquity)}</td></tr>
+    <tr><td>Total Interest Paid</td><td class="num"><span class="neg">${fmt(s1TotalInterest)}</span></td></tr>
+    <tr class="highlight-row"><td>Net Profit (Builder)</td><td class="num">${pn(s1Profit)}</td></tr>
+    <tr><td>ROI on Construction Cost</td><td class="num"><strong>${fmtPct(s1ROI)}</strong></td></tr>
+    </tbody></table></div></div></div>`;
+
+  // Scenario 2
+  html+=`<div class="panel results-section"><div class="panel-title">Scenario 2: Standard Sale (No Discount)</div><div class="panel-body">
+    <table><tbody>
+    <tr><td>Full Selling Price</td><td class="num">${fmt(sellPrice)}</td></tr>
+    <tr><td>During Construction (${(stdConst*100).toFixed(0)}%)</td><td class="num">${fmt(s2ConstPayments)}</td></tr>
+    <tr><td>At Handover (${(stdHandover*100).toFixed(0)}%)</td><td class="num">${fmt(s2HandoverPay)}</td></tr>
+    <tr><td>Construction Cost</td><td class="num">${fmt(totalConsCost)}</td></tr>
+    <tr><td>Loan Required (Cost - Construction Inflows)</td><td class="num">${fmt(s2FinalLoan)}</td></tr>
+    <tr><td>Monthly EMI</td><td class="num">${fmt(emi2)}</td></tr>
+    </tbody></table>
+    <h3 style="font-size:14px;margin:16px 0 8px">Loan Repayment Schedule</h3>
+    <div class="amort-table"><table><thead><tr>
+      <th>Year</th><th class="num">Loan Opening</th><th class="num">Interest</th><th class="num">Principal</th><th class="num">Loan Closing</th>
+    </tr></thead><tbody>`;
+  s2Data.forEach(r=>{
+    html+=`<tr><td>Year ${r.year}</td><td class="num">${fmtN(Math.round(r.loanOpening))}</td><td class="num">${fmtN(Math.round(r.yrInterest))}</td><td class="num">${fmtN(Math.round(r.yrPrincipal))}</td><td class="num">${fmtN(Math.round(r.loanClosing))}</td></tr>`;
+  });
+  html+=`</tbody></table></div>
+    <div style="margin-top:12px"><table><tbody>
+    <tr><td>Total Revenue</td><td class="num">${fmt(s2TotalReceived)}</td></tr>
+    <tr><td>Total Construction Cost</td><td class="num">${fmt(totalConsCost)}</td></tr>
+    <tr><td>Total Interest Paid</td><td class="num"><span class="neg">${fmt(s2TotalInterest)}</span></td></tr>
+    <tr class="highlight-row"><td>Net Profit (Builder)</td><td class="num">${pn(s2Profit)}</td></tr>
+    <tr><td>ROI on Construction Cost</td><td class="num"><strong>${fmtPct(s2ROI)}</strong></td></tr>
+    </tbody></table></div></div></div>`;
+
+  // Comparison
+  const s1Better=s1Profit>s2Profit;
+  html+=`<div class="panel results-section"><div class="panel-title">&#9733; Builder Comparison: Which Option is Better?</div><div class="panel-body">
+    <table class="comparison-table"><thead><tr><th>Metric</th><th class="${s1Better?'winner':''}">S1: Discount + Invest</th><th class="${!s1Better?'winner':''}">S2: Standard Sale</th></tr></thead><tbody>
+    <tr><td>Cash Received Upfront</td><td class="num">${fmt(discPrice)}</td><td class="num">${fmt(s2ConstPayments)} (staged)</td></tr>
+    <tr><td>Total Revenue</td><td class="num">${fmt(discPrice)}</td><td class="num">${fmt(sellPrice)}</td></tr>
+    <tr><td>Investment Returns</td><td class="num">${pn(eqBalance-toEquity)}</td><td class="num">N/A</td></tr>
+    <tr><td>Total Interest Paid</td><td class="num"><span class="neg">${fmt(s1TotalInterest)}</span></td><td class="num"><span class="neg">${fmt(s2TotalInterest)}</span></td></tr>
+    <tr class="highlight-row"><td>Net Profit</td><td class="num ${s1Better?'winner':''}">${pn(s1Profit)}</td><td class="num ${!s1Better?'winner':''}">${pn(s2Profit)}</td></tr>
+    <tr><td>ROI</td><td class="num">${fmtPct(s1ROI)}</td><td class="num">${fmtPct(s2ROI)}</td></tr>
+    <tr><td>Cash Flow Timing</td><td class="num">Immediate</td><td class="num">Staged over ${consPeriod} yrs</td></tr>
+    <tr><td>Max Discount (Break-Even)</td><td class="num" colspan="2" style="text-align:center"><strong>${maxDiscount}%</strong> — Builder can offer up to ${maxDiscount}% discount and still match standard sale profit</td></tr>
+    </tbody></table>
+    <div style="text-align:center;margin-top:12px"><span class="winner-badge">&#9733; Winner: ${s1Better?'Discount + Equity Investment':'Standard Sale'} (Profit: ${fmt(s1Better?s1Profit:s2Profit)})</span></div>
+  </div></div>`;
+
+  // Charts
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="chart-container"><canvas id="m3_chart1"></canvas></div>
+    <div class="chart-container"><canvas id="m3_chart2"></canvas></div>
+  </div>`;
+
+  $('#m3_results').innerHTML=html;
+
+  renderChart('m3_chart1','bar',{
+    labels:['S1: Discount+Invest','S2: Standard Sale'],
+    datasets:[
+      {label:'Revenue',data:[Math.round(discPrice),Math.round(sellPrice)],backgroundColor:'#3498db'},
+      {label:'Investment Gains',data:[Math.round(eqBalance-toEquity),0],backgroundColor:'#27ae60'},
+      {label:'Interest Cost',data:[Math.round(-s1TotalInterest),Math.round(-s2TotalInterest)],backgroundColor:'#e74c3c'}
+    ]
+  },{plugins:{title:{display:true,text:'Profitability Breakdown'},legend:{position:'bottom'}}});
+
+  const netWealthLine=s1Data.map(d=>Math.round(d.netWealth));
+  const s2ProfitLine=s2Data.map(d=>Math.round(sellPrice-totalConsCost-d.yrInterest));
+  renderChart('m3_chart2','line',{
+    labels:s1Data.map(d=>'Year '+d.year),
+    datasets:[
+      {label:'S1 Net Wealth',data:netWealthLine,borderColor:'#c9a84c',tension:0.3,fill:false},
+      {label:'S1 Equity Growth',data:s1Data.map(d=>Math.round(d.eqClosing)),borderColor:'#27ae60',borderDash:[5,5],tension:0.3,fill:false},
+      {label:'S1 Loan Outstanding',data:s1Data.map(d=>Math.round(d.loanClosing)),borderColor:'#e74c3c',borderDash:[3,3],tension:0.3,fill:false}
+    ]
+  },{plugins:{title:{display:true,text:'S1: Equity vs Loan Over Time'},legend:{position:'bottom'}}});
+
+  window.m3Data={s1Data,s2Data,s1Profit,s2Profit,discPrice,sellPrice,totalConsCost,s1TotalInterest,s2TotalInterest,toEquity,eqBalance,s1ROI,s2ROI,maxDiscount,emi1,emi2,loanNeeded1,s2FinalLoan};
+}
+
+// ===================== CHART HELPER =====================
+function renderChart(canvasId,type,data,options={}){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas)return;
+  const key=canvasId;
+  if(charts[key])charts[key].destroy();
+  charts[key]=new Chart(canvas,{
+    type,data,
+    options:{responsive:true,maintainAspectRatio:true,...options,
+      scales:{...options.scales,y:{...options.scales?.y,ticks:{callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v}}}}
+  });
+}
+
+// ===================== EXCEL EXPORT =====================
+function exportExcel(modelNum){
+  const wb=XLSX.utils.book_new();
+
+  if(modelNum===0||modelNum===1){
+    if(window.m1Data){
+      const d=window.m1Data;
+      const inputRows=[
+        ['INPUT ASSUMPTIONS',''],
+        ['Property Value',d.propVal],
+        ['Down Payment %',v('m1_downPct')+'%'],
+        ['Misc Costs %',v('m1_miscPct')+'%'],
+        ['Additional % to Sell',v('m1_addPct')+'%'],
+        ['Total Initial Cash',d.totalToSell],
+        ['Early Sale Profit %',v('m1_earlyProfit')+'%'],
+        ['Construction Period',d.consPeriod+' years'],
+        ['Loan Interest Rate',v('m1_intRate')+'%'],
+        ['Loan Tenure',d.tenure+' years'],
+        ['Loan Amount',d.loanAmt],
+        ['Monthly EMI',Math.round(d.emi)],
+        ['Annual Rental',v('m1_rental')],
+      ];
+      const ws1=XLSX.utils.aoa_to_sheet(inputRows);
+      XLSX.utils.book_append_sheet(wb,ws1,'M1 Inputs');
+
+      const amortHeaders=['Year','Opening Balance','Annual EMI','Interest','Principal','Closing Balance','Rental Income','Surplus/Shortfall'];
+      const amortRows=[amortHeaders,...d.amortData.map(r=>[r.year,Math.round(r.opening),Math.round(r.payment),Math.round(r.interest),Math.round(r.principal),Math.round(r.closing),r.rental,Math.round(r.surplus)])];
+      const ws2=XLSX.utils.aoa_to_sheet(amortRows);
+      XLSX.utils.book_append_sheet(wb,ws2,'M1 Amortization');
+
+      const stockHeaders=['Year','Opening Balance','Return %','Gain','Withdrawals','Closing Balance'];
+      const stockRows=[stockHeaders,...d.stockData.map(r=>[r.year,Math.round(r.opening),r.retPct.toFixed(1)+'%',Math.round(r.gain),Math.round(r.withdrawals),Math.round(r.closing)])];
+      const ws3=XLSX.utils.aoa_to_sheet(stockRows);
+      XLSX.utils.book_append_sheet(wb,ws3,'M1 Stock Market');
+
+      const compHeaders=['Metric','Property: Early Exit','Property: Hold','Stock Market'];
+      const compRows=[compHeaders,
+        ['Initial Investment',d.totalToSell,d.totalOOP,d.totalToSell],
+        ['Final Wealth',Math.round(d.scenarios[0].finalWealth),Math.round(d.scenarios[1].finalWealth),Math.round(d.scenarios[2].finalWealth)],
+        ['ROI',d.scenarios[0].roi.toFixed(2)+'%',d.scenarios[1].roi.toFixed(2)+'%',d.scenarios[2].roi.toFixed(2)+'%'],
+      ];
+      const ws4=XLSX.utils.aoa_to_sheet(compRows);
+      XLSX.utils.book_append_sheet(wb,ws4,'M1 Comparison');
+    }
+  }
+
+  if(modelNum===0||modelNum===2){
+    if(window.m2Data){
+      const d=window.m2Data;
+      const headers=['Year','Equity Opening','Return %','Withdrawals','Rental','Equity Closing','Property Paid','Prop Remaining'];
+      const rows=[headers,...d.s1Data.map(r=>[r.year,Math.round(r.eqOpening),r.retPct.toFixed(1)+'%',Math.round(r.withdrawals),r.rental,Math.round(r.eqClosing),Math.round(r.propPaid),Math.round(r.propRemaining)])];
+      const ws1=XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb,ws1,'M2 Scenario 1');
+
+      const compRows=[
+        ['COMPARISON','S1: Staggered+Equity','S2: Full Upfront'],
+        ['Total Wealth',Math.round(d.s1TotalWealth),Math.round(d.s2TotalWealth)],
+        ['Property Value',Math.round(d.finalPropValue1),Math.round(d.s2PropValueFinal)],
+        ['Equity Portfolio',Math.round(d.eqBalance),'N/A'],
+        ['Cash',Math.round(d.cashAccum),Math.round(d.s2Cash)],
+        ['Payoff Year',d.payoffYear||'N/A','Year 1'],
+      ];
+      const ws2=XLSX.utils.aoa_to_sheet(compRows);
+      XLSX.utils.book_append_sheet(wb,ws2,'M2 Comparison');
+    }
+  }
+
+  if(modelNum===0||modelNum===3){
+    if(window.m3Data){
+      const d=window.m3Data;
+      const headers=['Year','Equity Value','Equity Gain','Loan Balance','Interest Paid','Net Wealth'];
+      const rows=[headers,...d.s1Data.map(r=>[r.year,Math.round(r.eqClosing),Math.round(r.eqGain),Math.round(r.loanClosing),Math.round(r.yrInterest),Math.round(r.netWealth)])];
+      const ws1=XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb,ws1,'M3 Discount Sale');
+
+      const headers2=['Year','Loan Opening','Interest','Principal','Loan Closing'];
+      const rows2=[headers2,...d.s2Data.map(r=>[r.year,Math.round(r.loanOpening),Math.round(r.yrInterest),Math.round(r.yrPrincipal),Math.round(r.loanClosing)])];
+      const ws2=XLSX.utils.aoa_to_sheet(rows2);
+      XLSX.utils.book_append_sheet(wb,ws2,'M3 Standard Sale');
+
+      const compRows=[
+        ['COMPARISON','S1: Discount+Invest','S2: Standard Sale'],
+        ['Net Profit',Math.round(d.s1Profit),Math.round(d.s2Profit)],
+        ['ROI',d.s1ROI.toFixed(2)+'%',d.s2ROI.toFixed(2)+'%'],
+        ['Interest Paid',Math.round(d.s1TotalInterest),Math.round(d.s2TotalInterest)],
+        ['Max Discount Break-Even',d.maxDiscount+'%',''],
+      ];
+      const ws3=XLSX.utils.aoa_to_sheet(compRows);
+      XLSX.utils.book_append_sheet(wb,ws3,'M3 Comparison');
+    }
+  }
+
+  const filename=modelNum===0?'All_Investment_Models.xlsx':`Model_${modelNum}_Calculator.xlsx`;
+  XLSX.writeFile(wb,filename);
+}
+
+// ===================== INITIALIZE =====================
+m1BuildStockReturns();
+m2BuildReturns();
+calcModel1();
+calcModel2();
+calcModel3();
+</script>
+</body>
+</html>
