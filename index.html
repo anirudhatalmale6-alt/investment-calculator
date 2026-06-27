@@ -603,6 +603,24 @@ function calcModel1(){
     amortData.push({year:yr,opening,payment:annualEMI,interest:yrInterest,principal:yrPrincipal,closing:outstanding,rental,surplus});
   }
 
+  // Opportunity cost: what if pocket top-ups were invested in stocks instead
+  let totalPocketTopUp=0;
+  let pocketFV=0;
+  for(let yr=1;yr<=tenure;yr++){
+    const surplus=amortData[yr-1].surplus;
+    if(surplus<0){
+      const pocketPay=Math.abs(surplus);
+      totalPocketTopUp+=pocketPay;
+      let compounded=pocketPay;
+      for(let fy=yr+1;fy<=tenure;fy++){
+        const sr=(parseFloat(document.getElementById('m1_sr_'+fy)?.value)||10)/100;
+        compounded*=(1+sr);
+      }
+      pocketFV+=compounded;
+    }
+  }
+  const opportunityLoss=pocketFV-totalPocketTopUp;
+
   const propValueFinal=propVal*(1+appPost);
   const netPropertyValue=propValueFinal-outstanding;
   const holdNetProfit=netPropertyValue+cumulativeSurplus-totalCashInvested-(totalOOP-totalCashInvested);
@@ -700,14 +718,22 @@ function calcModel1(){
   html+=`<tr class="total-row"><td>Total</td><td></td><td class="num">${fmtN(Math.round(annualEMI*tenure))}</td><td class="num">${fmtN(Math.round(totalInterest))}</td><td class="num">${fmtN(Math.round(loanAmt))}</td><td></td><td class="num">${fmtN(totalRentalIncome)}</td><td class="num">${pn(totalRentalIncome-annualEMI*tenure,true)}</td></tr>`;
   html+=`</tbody></table></div>
     <div style="margin-top:16px"><table><thead><tr><th>Hold Investment Summary</th><th class="num">Value</th></tr></thead><tbody>
-    <tr><td>Total Cash Invested (Out-of-Pocket)</td><td class="num">${fmt(totalOOP)}</td></tr>
-    <tr><td>Total Rental Income</td><td class="num">${fmt(totalRentalIncome)}</td></tr>
-    <tr><td>Total Interest Paid (Expense)</td><td class="num"><span class="neg">${fmt(totalInterest)}</span></td></tr>
-    <tr><td>Total Principal Repaid (Equity Built)</td><td class="num">${fmt(loanAmt)}</td></tr>
+    <tr><td colspan="2" style="font-weight:700;color:var(--navy);padding-top:8px">Cash Outflow Breakdown</td></tr>
+    <tr><td>&nbsp;&nbsp;Initial Investment (Down + Misc + Add'l)</td><td class="num">${fmt(totalCashInvested)}</td></tr>
+    <tr><td>&nbsp;&nbsp;EMI Shortfall Paid from Pocket (EMI - Rental)</td><td class="num">${fmt(totalPocketTopUp)}</td></tr>
+    <tr class="highlight-row"><td>Total Out-of-Pocket</td><td class="num">${fmt(totalOOP)}</td></tr>
+    <tr><td>Total EMI Paid (${tenure} years)</td><td class="num">${fmt(annualEMI*tenure)}</td></tr>
+    <tr><td>&nbsp;&nbsp;of which Principal Repaid</td><td class="num">${fmt(loanAmt)}</td></tr>
+    <tr><td>&nbsp;&nbsp;of which Interest Paid</td><td class="num"><span class="neg">${fmt(totalInterest)}</span></td></tr>
+    <tr><td>Total Rental Income Received</td><td class="num"><span class="pos">${fmt(totalRentalIncome)}</span></td></tr>
+    <tr><td>Accumulated Rental Surplus</td><td class="num">${fmt(cumulativeSurplus)}</td></tr>
     <tr><td>Property Market Value (+${(appPost*100).toFixed(0)}%)</td><td class="num">${fmt(propValueFinal)}</td></tr>
     <tr><td>Outstanding Loan at End</td><td class="num">${fmt(outstanding)}</td></tr>
     <tr class="highlight-row"><td>Net Property Value (Market - Loan)</td><td class="num">${fmt(netPropertyValue)}</td></tr>
-    <tr><td>Accumulated Rental Surplus</td><td class="num">${fmt(cumulativeSurplus)}</td></tr>
+    <tr><td colspan="2" style="font-weight:700;color:var(--blue);padding-top:12px">Opportunity Cost (Stock Market Alternative)</td></tr>
+    <tr><td>&nbsp;&nbsp;Pocket Top-Ups Invested</td><td class="num">${fmt(totalPocketTopUp)}</td></tr>
+    <tr><td>&nbsp;&nbsp;Would Have Grown To (at Stock Returns)</td><td class="num"><span class="pos">${fmt(pocketFV)}</span></td></tr>
+    <tr><td>&nbsp;&nbsp;Lost Stock Market Gains</td><td class="num"><span class="neg">${fmt(opportunityLoss)}</span></td></tr>
     <tr class="highlight-row"><td>Hold ROI</td><td class="num"><strong>${fmtPct(holdROI)}</strong></td></tr>
     </tbody></table></div></div></div>`;
 
@@ -765,7 +791,7 @@ function calcModel1(){
     ]
   },{plugins:{title:{display:true,text:'Equity/Portfolio Growth Over Time'}}});
 
-  window.m1Data={amortData,stockData,scenarios,totalCashInvested,totalInterest,totalRentalIncome,propValueFinal,stockBalance,totalWithdrawals,emi,loanAmt,propVal,tenure,consPeriod,totalOOP,netProfit,totalExitCosts,earlyROI,holdROI,stockROI,netPropertyValue,cumulativeSurplus,holdWealth,stockWealth,nocFee,adminFee,agentCost};
+  window.m1Data={amortData,stockData,scenarios,totalCashInvested,totalInterest,totalRentalIncome,propValueFinal,stockBalance,totalWithdrawals,emi,loanAmt,propVal,tenure,consPeriod,totalOOP,netProfit,totalExitCosts,earlyROI,holdROI,stockROI,netPropertyValue,cumulativeSurplus,holdWealth,stockWealth,nocFee,adminFee,agentCost,totalPocketTopUp,pocketFV,opportunityLoss};
 }
 
 // ===================== MODEL 2 =====================
