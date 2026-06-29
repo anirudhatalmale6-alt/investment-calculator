@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lump Sum Investment Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#1a2332;--navy2:#243447;--gold:#c9a84c;--gold2:#e8c960;--gold-bg:rgba(201,168,76,0.08);--green:#27ae60;--red:#e74c3c;--blue:#3498db;--orange:#e67e22;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text2:#7f8c8d;--border:#e1e8ed;--input-bg:#fdf6e3;--radius:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+header h1{font-size:20px;font-weight:600;letter-spacing:0.5px}
+header h1 span{color:var(--gold)}
+.header-right{display:flex;align-items:center;gap:12px}
+.currency-toggle{display:flex;border:1px solid rgba(255,255,255,0.3);border-radius:16px;overflow:hidden}
+.currency-btn{padding:5px 14px;font-size:12px;cursor:pointer;background:transparent;border:none;color:rgba(255,255,255,0.7);font-weight:600;transition:all 0.2s}
+.currency-btn.active{background:var(--gold);color:var(--navy)}
+.container{padding:20px;max-width:1400px;margin:0 auto}
+.currency-note{text-align:center;font-size:11px;color:var(--text2);margin-bottom:12px;display:none}
+.currency-note.show{display:block}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start}
+@media(max-width:960px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow:hidden;margin-bottom:16px}
+.panel-title{background:var(--navy);color:#fff;padding:10px 16px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+.panel-title.gold-bg{background:linear-gradient(135deg,#8B6914,#B8860B)}
+.panel-body{padding:16px}
+.input-group{margin-bottom:14px}
+.input-group label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+.input-group input,.input-group select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:14px;background:var(--input-bg);color:var(--text);transition:border 0.2s}
+.input-group input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,168,76,0.2)}
+.primary-input{background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.15));border:2px solid var(--gold);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.primary-input label{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;display:block;letter-spacing:0.5px}
+.primary-input input{font-size:18px;font-weight:700;padding:10px 12px;border:2px solid var(--gold);background:#fff;border-radius:6px}
+.primary-input .derived{font-size:12px;color:var(--text2);margin-top:6px}
+.primary-input .derived strong{color:var(--navy)}
+.section-label{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.range-row{display:flex;align-items:center;gap:8px}
+.range-row input[type=range]{flex:1;-webkit-appearance:none;height:6px;background:var(--border);border-radius:3px;outline:none}
+.range-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--gold);border-radius:50%;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+.range-val{font-weight:700;color:var(--navy);min-width:55px;text-align:right;font-size:14px}
+.add-inv-row{display:grid;grid-template-columns:65px 95px 1fr 30px;gap:5px;align-items:center;margin-bottom:6px}
+.add-inv-row select,.add-inv-row input{padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--input-bg)}
+.btn-remove{width:26px;height:26px;border:none;background:var(--red);color:#fff;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;line-height:1}
+.btn-remove:hover{background:#c0392b}
+.btn-add{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;margin-top:4px}
+.btn-add:hover{background:#2980b9}
+.lump-sum-hero{background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:20px;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+.lump-sum-hero .label{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.6);margin-bottom:6px}
+.lump-sum-hero .value{font-size:32px;font-weight:700;color:var(--gold2);letter-spacing:0.5px}
+.lump-sum-hero .sub{font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.s-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;border-top:3px solid var(--gold)}
+.s-card.green{border-top-color:var(--green)}
+.s-card.blue{border-top-color:var(--blue)}
+.s-card.red{border-top-color:var(--red)}
+.s-card.orange{border-top-color:var(--orange)}
+.s-card .label{font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600;letter-spacing:0.5px}
+.s-card .value{font-size:18px;font-weight:700;color:var(--navy);margin-top:4px}
+.s-card .sub{font-size:11px;color:var(--text2);margin-top:2px}
+.chart-container{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:20px}
+.chart-container canvas{max-height:280px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--navy);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--border)}
+tr:nth-child(even){background:rgba(0,0,0,0.02)}
+tr:hover{background:rgba(201,168,76,0.06)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--green);font-weight:600}
+.neg{color:var(--red);font-weight:600}
+.year-header-row{background:var(--navy)!important}
+.year-header-row td{color:#fff!important;font-weight:700;border-bottom:none;font-size:12px}
+.return-row{background:rgba(39,174,96,0.08)!important;font-weight:600}
+.return-row td{border-bottom:2px solid var(--gold)}
+.highlight-row{background:rgba(201,168,76,0.12)!important;font-weight:600}
+.table-scroll{max-height:500px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
+.table-scroll table th{position:sticky;top:0;z-index:1}
+.view-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;width:fit-content}
+.view-btn{padding:6px 16px;font-size:12px;cursor:pointer;background:#fff;border:none;color:var(--text2);font-weight:600;transition:all 0.2s}
+.view-btn.active{background:var(--navy);color:#fff}
+.btn{padding:10px 24px;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px}
+.btn-gold{background:var(--gold);color:var(--navy)}
+.btn-gold:hover{background:var(--gold2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,168,76,0.3)}
+.export-bar{text-align:center;margin:20px 0}
+.footer{text-align:center;padding:16px;font-size:11px;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lump Sum <span>Investment Calculator</span></h1>
+  <div class="header-right">
+    <div class="currency-toggle">
+      <button class="currency-btn active" onclick="setCurrency('AED')">AED</button>
+      <button class="currency-btn" onclick="setCurrency('USD')">USD</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="currency-note" id="currNote">All inputs in AED. Displayed values converted at 1 USD = 3.6725 AED</div>
+  <div class="grid">
+
+    <div>
+      <div class="panel">
+        <div class="panel-title gold-bg">Input Parameters</div>
+        <div class="panel-body">
+
+          <div class="primary-input">
+            <label>Quarterly Withdrawal Amount (in advance)</label>
+            <input type="number" id="quarterlyW" value="50000" step="1000" onchange="calculate()" oninput="updateDerived()">
+            <div class="derived">Annual Requirement: <strong id="annualDerived">200,000</strong></div>
+          </div>
+
+          <div class="input-group">
+            <label>Annual Rate of Return</label>
+            <div class="range-row">
+              <input type="range" id="returnRate" min="1" max="40" value="20" step="0.5" oninput="document.getElementById('rrVal').textContent=this.value+'%';calculate()">
+              <span class="range-val" id="rrVal">20%</span>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Investment Duration (Years)</label>
+            <div class="range-row">
+              <input type="range" id="duration" min="1" max="30" value="10" oninput="document.getElementById('durVal').textContent=this.value+' yrs';onDurationChange()">
+              <span class="range-val" id="durVal">10 yrs</span>
+            </div>
+          </div>
+
+          <div class="section-label">Additional Investments (Top-Ups)</div>
+          <div id="addInvList"></div>
+          <button class="btn-add" onclick="addInvestmentRow()">+ Add Top-Up</button>
+
+        </div>
+      </div>
+    </div>
+
+    <div id="results"></div>
+
+  </div>
+</div>
+
+<div class="footer">This calculator is for educational and planning purposes only. Actual investment returns may vary.</div>
+
+<script>
+const USDRATE=3.6725;
+let currency='AED';
+const QLabels=['Q1 (Jan)','Q2 (Apr)','Q3 (Jul)','Q4 (Oct)'];
+
+function setCurrency(c){
+  currency=c;
+  document.querySelectorAll('.currency-btn').forEach(b=>b.classList.toggle('active',b.textContent===c));
+  document.getElementById('currNote').classList.toggle('show',c==='USD');
+  calculate();
+}
+
+function fmt(n){
+  let v=currency==='USD'?n/USDRATE:n;
+  const pfx=currency==='AED'?'AED ':'USD ';
+  if(Math.abs(v)>=1e6)return pfx+(v/1e6).toFixed(2)+'M';
+  return pfx+v.toLocaleString('en-US',{maximumFractionDigits:0});
+}
+function fmtN(n){
+  let v=currency==='USD'?n/USDRATE:n;
+  return v.toLocaleString('en-US',{maximumFractionDigits:0});
+}
+
+let addInvCounter=0;
+let addInvestments=[];
+
+function updateDerived(){
+  const w=parseFloat(document.getElementById('quarterlyW').value)||0;
+  document.getElementById('annualDerived').textContent=(w*4).toLocaleString('en-US');
+}
+
+function addInvestmentRow(){
+  addInvCounter++;
+  addInvestments.push({id:addInvCounter,year:1,quarter:1,amount:0});
+  renderAddInvList();
+}
+
+function removeInvestmentRow(id){
+  addInvestments=addInvestments.filter(a=>a.id!==id);
+  renderAddInvList();
+  calculate();
+}
+
+function updateAddInv(id,field,val){
+  const inv=addInvestments.find(a=>a.id===id);
+  if(!inv)return;
+  inv[field]=field==='amount'?(parseFloat(val)||0):parseInt(val);
+  calculate();
+}
+
+function renderAddInvList(){
+  const n=parseInt(document.getElementById('duration').value)||10;
+  const el=document.getElementById('addInvList');
+  let h='';
+  for(const inv of addInvestments){
+    h+=`<div class="add-inv-row">
+      <select onchange="updateAddInv(${inv.id},'year',this.value)">
+        ${Array.from({length:n},(_,i)=>`<option value="${i+1}"${inv.year===i+1?' selected':''}>Y${i+1}</option>`).join('')}
+      </select>
+      <select onchange="updateAddInv(${inv.id},'quarter',this.value)">
+        ${[1,2,3,4].map(q=>`<option value="${q}"${inv.quarter===q?' selected':''}>${QLabels[q-1]}</option>`).join('')}
+      </select>
+      <input type="number" value="${inv.amount||''}" placeholder="Amount" onchange="updateAddInv(${inv.id},'amount',this.value)">
+      <button class="btn-remove" onclick="removeInvestmentRow(${inv.id})">&times;</button>
+    </div>`;
+  }
+  el.innerHTML=h;
+}
+
+function onDurationChange(){
+  const n=parseInt(document.getElementById('duration').value)||10;
+  addInvestments=addInvestments.filter(a=>a.year<=n);
+  renderAddInvList();
+  calculate();
+}
+
+function getTopup(y,q,additions){
+  let t=0;
+  for(const a of additions){if(a.year===y&&a.quarter===q)t+=a.amount;}
+  return t;
+}
+
+function simulate(lumpSum,W,r,n,additions){
+  let bal=lumpSum;
+  let totalW=0,totalAdd=0,totalRet=0;
+  let rows=[];
+  for(let y=1;y<=n;y++){
+    for(let q=1;q<=4;q++){
+      const opening=bal;
+      bal-=W;
+      totalW+=W;
+      const topup=getTopup(y,q,additions);
+      bal+=topup;
+      totalAdd+=topup;
+      const row={year:y,quarter:q,opening,withdrawal:W,topup,closing:bal};
+      if(q===4){
+        const ret=bal*r;
+        bal+=ret;
+        totalRet+=ret;
+        row.returnAmt=ret;
+        row.yearEnd=bal;
+      }
+      rows.push(row);
+    }
+  }
+  return{rows,finalBalance:bal,totalW,totalAdd,totalRet};
+}
+
+function findRequiredLumpSum(W,r,n,additions){
+  if(W<=0)return 0;
+  const s0=simulate(0,W,r,n,additions);
+  const s1=simulate(1,W,r,n,additions);
+  let maxL=0;
+  for(let i=0;i<s0.rows.length;i++){
+    const b=s0.rows[i].closing;
+    const a=s1.rows[i].closing-b;
+    if(a>0&&b<0)maxL=Math.max(maxL,-b/a);
+    if(s0.rows[i].yearEnd!==undefined){
+      const bY=s0.rows[i].yearEnd;
+      const aY=s1.rows[i].yearEnd-bY;
+      if(aY>0&&bY<0)maxL=Math.max(maxL,-bY/aY);
+    }
+  }
+  return maxL;
+}
+
+let balChart=null;
+
+function calculate(){
+  const W=parseFloat(document.getElementById('quarterlyW').value)||0;
+  const r=(parseFloat(document.getElementById('returnRate').value)||0)/100;
+  const n=parseInt(document.getElementById('duration').value)||1;
+  const additions=addInvestments.filter(a=>a.amount>0);
+
+  updateDerived();
+
+  const lumpSum=findRequiredLumpSum(W,r,n,additions);
+  const sim=simulate(lumpSum,W,r,n,additions);
+
+  renderResults(lumpSum,sim,W,r,n,additions);
+  renderChart(sim,n);
+}
+
+function renderResults(lumpSum,sim,W,r,n,additions){
+  const el=document.getElementById('results');
+  let h='';
+
+  h+=`<div class="lump-sum-hero">
+    <div class="label">Required Initial Lump Sum Investment</div>
+    <div class="value">${fmt(lumpSum)}</div>
+    <div class="sub">To support ${fmt(W)} quarterly withdrawals for ${n} year${n>1?'s':''} at ${(r*100).toFixed(1)}% annual return</div>
+  </div>`;
+
+  h+=`<div class="summary-cards">
+    <div class="s-card red"><div class="label">Total Withdrawals</div><div class="value">${fmt(sim.totalW)}</div><div class="sub">${n*4} quarters &times; ${fmt(W)}</div></div>
+    <div class="s-card blue"><div class="label">Total Top-Ups</div><div class="value">${fmt(sim.totalAdd)}</div><div class="sub">${additions.length} investment${additions.length!==1?'s':''}</div></div>
+    <div class="s-card green"><div class="label">Total Returns Earned</div><div class="value">${fmt(sim.totalRet)}</div><div class="sub">${(r*100).toFixed(1)}% compounded annually</div></div>
+    <div class="s-card orange"><div class="label">Final Balance</div><div class="value">${fmt(Math.max(0,sim.finalBalance))}</div><div class="sub">After ${n} year${n>1?'s':''}</div></div>
+  </div>`;
+
+  h+=`<div class="chart-container"><canvas id="balChartCanvas"></canvas></div>`;
+
+  h+=`<div class="panel"><div class="panel-title">Year-by-Year Breakdown</div><div class="panel-body">`;
+  h+=`<div class="view-toggle">
+    <button class="view-btn active" id="btnYearly" onclick="toggleView('yearly')">Yearly Summary</button>
+    <button class="view-btn" id="btnQuarterly" onclick="toggleView('quarterly')">Quarterly Detail</button>
+  </div>`;
+
+  h+=`<div id="yearlyView"><div class="table-scroll"><table>
+    <thead><tr><th>Year</th><th class="num">Opening</th><th class="num">Withdrawals</th><th class="num">Top-Ups</th><th class="num">Before Return</th><th class="num">Return (${(r*100).toFixed(1)}%)</th><th class="num">Closing</th></tr></thead><tbody>`;
+  for(let y=1;y<=n;y++){
+    const yRows=sim.rows.filter(r=>r.year===y);
+    const opening=yRows[0].opening;
+    const totalYW=yRows.reduce((s,r)=>s+r.withdrawal,0);
+    const totalYA=yRows.reduce((s,r)=>s+r.topup,0);
+    const beforeRet=yRows[3].closing;
+    const retAmt=yRows[3].returnAmt||0;
+    const yearEnd=yRows[3].yearEnd||beforeRet;
+    h+=`<tr${y===n?' class="highlight-row"':''}>
+      <td><strong>Year ${y}</strong></td>
+      <td class="num">${fmtN(opening)}</td>
+      <td class="num"><span class="neg">${fmtN(totalYW)}</span></td>
+      <td class="num">${totalYA>0?'<span class="pos">'+fmtN(totalYA)+'</span>':'-'}</td>
+      <td class="num">${fmtN(beforeRet)}</td>
+      <td class="num"><span class="pos">${fmtN(retAmt)}</span></td>
+      <td class="num"><strong>${fmtN(yearEnd)}</strong></td>
+    </tr>`;
+  }
+  h+=`</tbody></table></div></div>`;
+
+  h+=`<div id="quarterlyView" style="display:none"><div class="table-scroll"><table>
+    <thead><tr><th>Period</th><th class="num">Opening</th><th class="num">Withdrawal</th><th class="num">Top-Up</th><th class="num">Closing</th></tr></thead><tbody>`;
+  for(let i=0;i<sim.rows.length;i++){
+    const r=sim.rows[i];
+    if(r.quarter===1){
+      h+=`<tr class="year-header-row"><td colspan="5">Year ${r.year}</td></tr>`;
+    }
+    h+=`<tr><td>&nbsp;&nbsp;${QLabels[r.quarter-1]}</td>
+      <td class="num">${fmtN(r.opening)}</td>
+      <td class="num"><span class="neg">${fmtN(r.withdrawal)}</span></td>
+      <td class="num">${r.topup>0?'<span class="pos">'+fmtN(r.topup)+'</span>':'-'}</td>
+      <td class="num">${fmtN(r.closing)}</td></tr>`;
+    if(r.quarter===4){
+      h+=`<tr class="return-row"><td>&nbsp;&nbsp;Annual Return (${(parseFloat(document.getElementById('returnRate').value)).toFixed(1)}%)</td>
+        <td class="num" colspan="3"></td>
+        <td class="num"><span class="pos">${fmtN(r.yearEnd)}</span></td></tr>`;
+    }
+  }
+  h+=`</tbody></table></div></div>`;
+
+  h+=`</div></div>`;
+
+  h+=`<div class="export-bar"><button class="btn btn-gold" onclick="exportExcel()">Export to Excel</button></div>`;
+
+  el.innerHTML=h;
+}
+
+function toggleView(v){
+  document.getElementById('yearlyView').style.display=v==='yearly'?'':'none';
+  document.getElementById('quarterlyView').style.display=v==='quarterly'?'':'none';
+  document.getElementById('btnYearly').classList.toggle('active',v==='yearly');
+  document.getElementById('btnQuarterly').classList.toggle('active',v==='quarterly');
+}
+
+function renderChart(sim,n){
+  const canvas=document.getElementById('balChartCanvas');
+  if(!canvas)return;
+  if(balChart){balChart.destroy();balChart=null;}
+
+  const labels=[];
+  const data=[];
+  for(let i=0;i<sim.rows.length;i++){
+    const r=sim.rows[i];
+    labels.push(r.quarter===1?'Y'+r.year:'');
+    data.push(r.quarter===4?(r.yearEnd||r.closing):r.closing);
+  }
+
+  const cv=currency==='USD'?USDRATE:1;
+  balChart=new Chart(canvas,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Portfolio Balance',
+        data:data.map(d=>Math.round(d/cv)),
+        borderColor:'#c9a84c',
+        backgroundColor:'rgba(201,168,76,0.12)',
+        fill:true,
+        tension:0.3,
+        pointRadius:n<=10?3:1,
+        pointBackgroundColor:'#c9a84c',
+        borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:function(ctx){
+              const idx=ctx[0].dataIndex;
+              const r=sim.rows[idx];
+              return'Year '+r.year+', '+QLabels[r.quarter-1];
+            },
+            label:function(ctx){
+              const pfx=currency==='AED'?'AED ':'USD ';
+              return pfx+ctx.parsed.y.toLocaleString('en-US');
+            }
+          }
+        }
+      },
+      scales:{
+        y:{
+          beginAtZero:true,
+          ticks:{callback:function(v){
+            const pfx=currency==='AED'?'AED ':'USD ';
+            if(v>=1e6)return pfx+(v/1e6).toFixed(1)+'M';
+            if(v>=1e3)return pfx+(v/1e3).toFixed(0)+'K';
+            return pfx+v;
+          }}
+        },
+        x:{
+          ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:15}
+        }
+      }
+    }
+  });
+}
+
+function exportExcel(){
+  const W=parseFloat(document.getElementById('quarterlyW').value)||0;
+  const r=(parseFloat(document.getElementById('returnRate').value)||0)/100;
+  const n=parseInt(document.getElementById('duration').value)||1;
+  const additions=addInvestments.filter(a=>a.amount>0);
+  const lumpSum=findRequiredLumpSum(W,r,n,additions);
+  const sim=simulate(lumpSum,W,r,n,additions);
+
+  const wb=XLSX.utils.book_new();
+
+  const summaryData=[
+    ['Lump Sum Investment Calculator - Summary'],
+    [],
+    ['Quarterly Withdrawal (AED)',W],
+    ['Annual Withdrawal (AED)',W*4],
+    ['Annual Rate of Return',r],
+    ['Duration (Years)',n],
+    [],
+    ['Required Lump Sum (AED)',Math.round(lumpSum)],
+    ['Total Withdrawals (AED)',Math.round(sim.totalW)],
+    ['Total Additional Investments (AED)',Math.round(sim.totalAdd)],
+    ['Total Returns Earned (AED)',Math.round(sim.totalRet)],
+    ['Final Balance (AED)',Math.round(Math.max(0,sim.finalBalance))],
+  ];
+  if(additions.length>0){
+    summaryData.push([]);
+    summaryData.push(['Additional Investments']);
+    summaryData.push(['Year','Quarter','Amount (AED)']);
+    for(const a of additions){
+      summaryData.push([a.year,QLabels[a.quarter-1],a.amount]);
+    }
+  }
+  const ws1=XLSX.utils.aoa_to_sheet(summaryData);
+  ws1['!cols']=[{wch:35},{wch:18},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Summary');
+
+  const detailData=[['Year','Quarter','Opening Balance','Withdrawal','Top-Up','Closing Balance','Annual Return','Year-End Balance']];
+  for(const row of sim.rows){
+    detailData.push([
+      row.year,
+      QLabels[row.quarter-1],
+      Math.round(row.opening),
+      Math.round(row.withdrawal),
+      row.topup||0,
+      Math.round(row.closing),
+      row.returnAmt!==undefined?Math.round(row.returnAmt):'',
+      row.yearEnd!==undefined?Math.round(row.yearEnd):''
+    ]);
+  }
+  const ws2=XLSX.utils.aoa_to_sheet(detailData);
+  ws2['!cols']=[{wch:8},{wch:12},{wch:18},{wch:14},{wch:12},{wch:18},{wch:16},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Quarterly Detail');
+
+  XLSX.writeFile(wb,'LumpSum_Calculator.xlsx');
+}
+
+calculate();
+</script>
+</body>
+</html>
